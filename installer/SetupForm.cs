@@ -16,6 +16,7 @@ namespace ShortcutLGSetup
         private CheckBox configCheck;
         private Button actionButton;
         private Button cancelButton;
+        private Button uninstallButton;
         private Label statusLabel;
         private Label pathLabel;
         private Label descriptionLabel;
@@ -24,6 +25,7 @@ namespace ShortcutLGSetup
         private ProgressBar progress;
         private bool busy;
         private bool actionStarted;
+        private bool uninstallRequested;
 
         private static readonly Color HeaderBack = Color.FromArgb(11, 23, 40);
         private static readonly Color HeaderText = Color.FromArgb(160, 205, 235);
@@ -155,17 +157,56 @@ namespace ShortcutLGSetup
             cancelButton.Click += delegate { Close(); };
             Controls.Add(cancelButton);
 
+            uninstallButton = new Button();
+            uninstallButton.Text = "Desinstalar";
+            uninstallButton.Location = new Point(22, 380);
+            uninstallButton.Size = new Size(120, 34);
+            uninstallButton.Click += UninstallButtonClick;
+            uninstallButton.Visible = false;
+            Controls.Add(uninstallButton);
+
             AcceptButton = actionButton;
             CancelButton = cancelButton;
         }
 
+        private static string GetInstalledVersion()
+        {
+            try
+            {
+                if (File.Exists(AppPaths.AppPath))
+                {
+                    FileVersionInfo info = FileVersionInfo.GetVersionInfo(AppPaths.AppPath);
+                    if (!string.IsNullOrWhiteSpace(info.FileVersion))
+                        return info.FileVersion;
+                }
+            }
+            catch { }
+            try
+            {
+                using (Microsoft.Win32.RegistryKey key =
+                    Microsoft.Win32.Registry.CurrentUser.OpenSubKey(AppPaths.UninstallKeyPath, false))
+                {
+                    if (key != null)
+                    {
+                        string version = key.GetValue("DisplayVersion") as string;
+                        if (!string.IsNullOrWhiteSpace(version)) return version;
+                    }
+                }
+            }
+            catch { }
+            return null;
+        }
+
         private void ConfigureMode()
         {
+            string installedVersion = GetInstalledVersion();
             if (uninstallMode)
             {
-                Text = "Desinstalar ShortcutLG";
+                Text = "Desinstalar ShortcutLG " + AppPaths.Version;
                 titleLabel.Text = "Desinstalar ShortcutLG";
-                subtitleLabel.Text = "Desinstalador";
+                subtitleLabel.Text = installedVersion != null
+                    ? "Versión instalada: " + installedVersion
+                    : "Desinstalador · Versión " + AppPaths.Version;
                 descriptionLabel.Text =
                     "Se quitarán el programa, los accesos directos y el inicio automático." +
                     " La configuración de la TV se conserva salvo que marques la casilla.";
@@ -180,9 +221,15 @@ namespace ShortcutLGSetup
             else
             {
                 bool installed = File.Exists(AppPaths.AppPath);
-                Text = "Instalar ShortcutLG";
-                titleLabel.Text = "ShortcutLG";
-                subtitleLabel.Text = installed ? "Actualizar instalación" : "Instalador";
+                Text = installed
+                    ? "Actualizar ShortcutLG " + AppPaths.Version
+                    : "Instalar ShortcutLG " + AppPaths.Version;
+                titleLabel.Text = "ShortcutLG " + AppPaths.Version;
+                subtitleLabel.Text = installed
+                    ? (installedVersion != null
+                        ? "Actualización · Instalada: " + installedVersion
+                        : "Actualizar instalación")
+                    : "Instalador · Versión " + AppPaths.Version;
                 descriptionLabel.Text = installed
                     ? "Se actualizará la instalación existente. La configuración de la TV se conserva."
                     : "Instala ShortcutLG en tu usuario. No requiere permisos de administrador.";
@@ -190,7 +237,8 @@ namespace ShortcutLGSetup
                 desktopCheck.Checked = !installed || File.Exists(AppPaths.DesktopShortcut);
                 startupCheck.Checked = !installed || InstallOperations.IsStartupEnabled();
                 actionButton.Text = installed ? "Actualizar" : "Instalar";
-                SetStatus("Pulsa Instalar para comenzar.", SystemColors.GrayText);
+                uninstallButton.Visible = installed;
+                SetStatus("Pulsa " + actionButton.Text + " para comenzar.", SystemColors.GrayText);
             }
         }
 
@@ -209,16 +257,7 @@ namespace ShortcutLGSetup
                     actionStarted = false;
                     return;
                 }
-                if (!EnsureAppStopped())
-                {
-                    actionStarted = false;
-                    return;
-                }
-
-                bool deleteConfig = configCheck.Checked;
-                SetBusy(true, "Desinstalando...");
-                Task.Run(() => InstallOperations.Uninstall(deleteConfig))
-                    .ContinueWith(delegate(Task<string> task) { Finish(task, false); });
+                RunUninstall(configCheck.Checked);
             }
             else
             {
@@ -235,6 +274,40 @@ namespace ShortcutLGSetup
                 Task.Run(() => InstallOperations.Install(desktop, startup))
                     .ContinueWith(delegate(Task<string> task) { Finish(task, run); });
             }
+        }
+
+        private void UninstallButtonClick(object sender, EventArgs e)
+        {
+            if (busy || actionStarted) return;
+
+            // Una sola pregunta: Sí desinstala y borra también la
+            // configuración y la autorización de la TV; No desinstala
+            // conservando la configuración; Cancelar no hace nada.
+            DialogResult answer = MessageBox.Show(this,
+                "¿Desinstalar ShortcutLG de este equipo?\n\n" +
+                "Sí = desinstalar y eliminar también la configuración y la autorización de la TV.\n" +
+                "No = desinstalar conservando la configuración.\n" +
+                "Cancelar = no hacer nada.",
+                "Desinstalar", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Warning);
+            if (answer == DialogResult.Cancel) return;
+
+            actionStarted = true;
+            uninstallRequested = true;
+            RunUninstall(answer == DialogResult.Yes);
+        }
+
+        private void RunUninstall(bool deleteConfig)
+        {
+            if (!EnsureAppStopped())
+            {
+                actionStarted = false;
+                uninstallRequested = false;
+                return;
+            }
+
+            SetBusy(true, "Desinstalando...");
+            Task.Run(() => InstallOperations.Uninstall(deleteConfig))
+                .ContinueWith(delegate(Task<string> task) { Finish(task, false); });
         }
 
         private bool EnsureAppStopped()
@@ -278,7 +351,7 @@ namespace ShortcutLGSetup
                 {
                     SetBusy(false, "");
 
-                    if (uninstallMode)
+                    if (uninstallMode || uninstallRequested)
                     {
                         if (!string.IsNullOrEmpty(error))
                         {
@@ -358,6 +431,7 @@ namespace ShortcutLGSetup
             configCheck.Enabled = !value;
             actionButton.Enabled = !value;
             cancelButton.Enabled = !value;
+            if (uninstallButton != null) uninstallButton.Enabled = !value;
             progress.Visible = value;
             progress.MarqueeAnimationSpeed = value ? 30 : 0;
             UseWaitCursor = value;

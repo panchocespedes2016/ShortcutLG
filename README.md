@@ -12,6 +12,10 @@ Versión 1.0.0.0, 31 de octubre de 2026. Cambio de HDMI 1–4 verificado en una 
 
 Añade al menú y a los atajos: volumen +/−, apagar (pide confirmación), Inicio, Aceptar (OK), flechas y Exit. Volumen, apagar e Inicio van por órdenes SSAP sobre el mismo canal; OK, flechas y Exit van como botones del mando por el socket de entrada (`getPointerInputSocket`, protocolo de texto `type:button`).
 
+## Versión 1.1.1
+
+El instalador muestra la versión (la instalada y la nueva) y permite desinstalar desde el propio instalador, con la opción de borrar también la configuración y la autorización de la TV. Registro parcial de atajos: si un atajo ya lo usa otra aplicación, los demás siguen funcionando.
+
 ## Uso
 
 1. Ejecuta `ShortcutLG.exe`. Aparece un icono junto al reloj.

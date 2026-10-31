@@ -165,6 +165,11 @@ La TV cambia de IP cada cierto tiempo
 
 DESINSTALAR
 -----------
+Desde el instalador: ejecuta ShortcutLG-Setup.exe; el instalador muestra la
+version instalada y la version nueva, y el boton Desinstalar permite
+desinstalar desde ahi (pregunta si se borra tambien la configuracion y la
+autorizacion de la TV).
+
 Version instalada:
 1. Abre Configuracion > Aplicaciones > Aplicaciones instaladas (o "Agregar o
    quitar programas") y elige ShortcutLG > Desinstalar.
