@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Threading;
 using System.Windows.Forms;
@@ -82,6 +83,11 @@ namespace LgHdmiTray
             UnregisterAll();
             if (hotkeys == null) return "No hay atajos configurados.";
 
+            // Registro parcial: si un atajo ya lo tiene otra aplicacion
+            // (error 1409), los demas siguen funcionando y solo se avisa
+            // de los que fallaron. Antes un solo conflicto dejaba los 14
+            // atajos sin registrar.
+            List<string> failed = new List<string>();
             for (int i = 0; i < hotkeys.Length; i++)
             {
                 Hotkey hotkey = hotkeys[i];
@@ -96,11 +102,14 @@ namespace LgHdmiTray
                     (uint)hotkey.Key))
                 {
                     int error = System.Runtime.InteropServices.Marshal.GetLastWin32Error();
-                    UnregisterAll();
-                    return "No se pudo registrar " + hotkey + " (error " + error + ").\n" +
-                           "Puede que otra aplicacion lo este usando; prueba otra combinacion.";
+                    string name = i >= 0 && i < AppConfig.ActionNames.Length
+                        ? AppConfig.ActionNames[i] : "accion " + (i + 1);
+                    failed.Add(name + " (" + hotkey + ", error " + error + ")");
                 }
             }
+            if (failed.Count > 0)
+                return "No se pudieron registrar: " + string.Join("; ", failed.ToArray()) + ".\n" +
+                       "Puede que otra aplicacion los este usando; prueba otra combinacion.";
             return null;
         }
 

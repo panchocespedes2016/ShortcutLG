@@ -49,7 +49,7 @@ namespace LgHdmiTray
             if (hotkeyError != null)
             {
                 Log.Write(hotkeyError);
-                ShowBalloon("No se pudieron activar los atajos", hotkeyError,
+                ShowBalloon("Algunos atajos no se pudieron registrar", hotkeyError,
                     ToolTipIcon.Warning, 6000);
             }
             else

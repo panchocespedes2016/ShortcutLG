@@ -89,8 +89,8 @@ Por defecto:
   HDMI 2 = Win + Alt + Shift + 2
   HDMI 3 = Win + Alt + Shift + 3
   HDMI 4 = Win + Alt + Shift + 4
-  Volumen + = Win + Alt + Flecha arriba
-  Volumen - = Win + Alt + Flecha abajo
+  Volumen + = Win + Alt + RePág
+  Volumen - = Win + Alt + AvPág
   Apagar TV = Win + Alt + Shift + P (pide confirmacion)
   Inicio = Win + Alt + Shift + Inicio (tecla Home)
   Aceptar (OK) = Win + Alt + Shift + Enter
