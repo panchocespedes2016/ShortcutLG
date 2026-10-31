@@ -1,0 +1,171 @@
+ShortcutLG
+=========
+
+Aplicacion de bandeja para cambiar la entrada HDMI de una TV LG webOS con
+atajos de teclado globales.
+
+Archivos:
+  ShortcutLG.exe        version portable; no necesita instalacion.
+  ShortcutLG-Setup.exe  instalador para tu usuario.
+
+No necesita programas adicionales. Solo usa .NET Framework 4.8, incluido de
+serie en Windows 10 y Windows 11.
+
+
+INSTALACION (OPCIONAL)
+----------------------
+Puedes usar ShortcutLG.exe directamente, sin instalar nada. Si quieres accesos
+directos, inicio con Windows y desinstalacion desde Aplicaciones, usa el
+instalador:
+
+1. Ejecuta ShortcutLG-Setup.exe.
+2. Elige si quieres acceso directo en el escritorio y si debe iniciar con
+   Windows. "Abrir ShortcutLG al terminar" viene marcado.
+3. Pulsa "Instalar". No pide permisos de administrador.
+4. Se instala en %LOCALAPPDATA%\Programs\ShortcutLG y crea un acceso en el
+   menu Inicio (y en el escritorio si lo marcas).
+
+Para abrirlo despues: menu Inicio > ShortcutLG, o el icono del escritorio.
+Si vuelves a ejecutar el instalador, actualiza la instalacion existente y
+conserva la configuracion de la TV.
+
+
+REQUISITOS
+----------
+- Windows 10 u 11 (tambien funciona en Windows 7/8.1 con .NET Framework 4.8).
+- TV LG con webOS encendida y conectada a la misma red local que el PC.
+- Se recomienda cable de red en la TV; tambien vale Wi-Fi sin aislamiento de
+  clientes (evita redes de invitados).
+- Permite el acceso de ShortcutLG.exe a la red privada si Windows Firewall
+  muestra un aviso la primera vez.
+
+
+PRIMER INICIO Y EMPAREJAMIENTO
+------------------------------
+1. Ejecuta ShortcutLG.exe. Aparecera un icono junto al reloj.
+2. La primera vez se abre automaticamente "Configurar TV LG".
+   Si no se abre, haz clic en el icono y elige "Conectar a una TV...".
+3. Pulsa "Buscar TV" para buscarla automaticamente en la red, o escribe su IP.
+   La IP se ve en la TV en Ajustes > Conexion > Red.
+4. Pulsa "Emparejar TV".
+5. En la pantalla de la TV aparecera un aviso pidiendo permiso. Aceptalo con el
+   mando. El dialogo del PC debe permanecer abierto hasta que termine.
+6. Cuando termine, la TV queda autorizada y los atajos funcionan.
+
+La autorizacion se guarda en el PC. No hay que repetirla en cada inicio. Si
+cambias la IP de la TV o la TV deja de aceptar la autorizacion, vuelve a
+"Conectar a una TV..." y empareja de nuevo.
+
+Nota: si en tu modelo existe la opcion "LG Connect Apps" o
+"Conexion movil", dejala activada. Algunos modelos no permiten el control por
+red si esa funcion esta desactivada.
+
+
+MENU DEL ICONO
+--------------
+Haz clic en el icono de la bandeja (izquierdo o derecho):
+
+- "TV: 192.168.x.x": muestra la TV configurada. Es la TV guardada, no una
+  conexion permanente.
+- "HDMI 1" ... "HDMI 4": cambia la TV a esa entrada. A la derecha se muestra el
+  atajo asignado.
+- "Conectar a una TV..." / "Conectar a otra TV...": cambia la IP y empareja.
+- "Cambiar combinaciones de teclas...": editor de los cuatro atajos.
+- "Iniciar con Windows": arranca solo al iniciar sesion.
+- "Abrir carpeta de datos": abre la carpeta de configuracion y el registro.
+- "Salir": cierra la aplicacion y libera los atajos.
+
+
+ATAJOS DE TECLADO
+-----------------
+Por defecto:
+  HDMI 1 = Win + Alt + Shift + 1
+  HDMI 2 = Win + Alt + Shift + 2
+  HDMI 3 = Win + Alt + Shift + 3
+  HDMI 4 = Win + Alt + Shift + 4
+
+Windows reserva Win+Alt+1..4 para las listas de la barra de tareas, por eso
+los atajos por defecto incluyen Shift. Puedes usar otras combinaciones, por
+ejemplo Ctrl+Alt+1..4.
+
+Para cambiarlos: menu > "Cambiar combinaciones de teclas...". Haz clic en la
+casilla de cada HDMI y pulsa la combinacion deseada. Debe incluir Ctrl, Alt o
+Win. Pulsa "Guardar". Si una combinacion ya la usa otro programa, la app avisa
+y mantiene los atajos anteriores.
+
+
+CONFIGURACION Y DATOS
+---------------------
+Carpeta: %LOCALAPPDATA%\ShortcutLG
+  tray.ini  -> IP de la TV, autorizacion y atajos.
+  tray.log  -> registro de errores y cambios (util para diagnosticar).
+
+Puedes abrirla desde el menu del icono. Para hacer copia de seguridad, copia
+tray.ini. No compartas tray.ini: contiene la clave de autorizacion de tu TV.
+
+
+LA TV COMO MONITOR DEL PC (HDMI)
+--------------------------------
+La app lee la informacion EDID del monitor conectado y, si detecta un monitor
+LG por HDMI, muestra su modelo en "Configurar TV LG". Eso es solo informativo.
+
+Por HDMI no se puede obtener la IP de la TV ni enviarle ordenes de cambio de
+entrada: el control se hace por red (descubrimiento SSDP y WebSocket en el
+puerto 3000). Tampoco se usa CEC, porque Windows no expone esa funcion a las
+aplicaciones normales.
+
+Si el PC esta usando la TV en HDMI 1 y cambias a HDMI 2/3/4, es normal que la
+pantalla del PC se apague o que Windows detecte que el monitor se ha
+desconectado y reordene las ventanas. La aplicacion sigue ejecutandose en la
+bandeja y los atajos siguen funcionando. Para volver al PC, usa el atajo de
+HDMI 1 o el mando de la TV. Al reconectar, Windows puede tardar unos segundos
+en recuperar la imagen y la resolucion.
+
+
+PROBLEMAS FRECUENTES
+--------------------
+"No se pudo conectar con la TV"
+  - Comprueba que la TV esta encendida y en la misma red.
+  - Verifica la IP en la TV y vuelve a escribirla.
+  - Evita redes de invitados o con aislamiento de clientes.
+  - Permite ShortcutLG.exe en el firewall de Windows (red privada).
+  - Prueba a hacer ping a la IP de la TV desde el PC.
+
+No aparece el aviso de emparejamiento en la TV
+  - Manten abierto el dialogo "Configurar TV LG" mientras emparejas.
+  - Activa "LG Connect Apps" / conexion movil si tu modelo lo tiene.
+  - Comprueba que la TV no este en modo tienda ni bloqueada por una cuenta.
+  - Espera unos segundos y pulsa "Emparejar TV" otra vez.
+
+Windows SmartScreen avisa al abrir el programa
+  - Es normal en ejecutables sin firma digital. Pulsa "Mas informacion" y
+    "Ejecutar de todos modos". El programa no se conecta a Internet: solo habla
+    con la TV en la red local.
+
+La TV cambia de IP cada cierto tiempo
+  - Reserva una IP fija para la TV en el router (DHCP reservation) o vuelve a
+    configurarla desde el menu.
+
+
+DESINSTALAR
+-----------
+Version instalada:
+1. Abre Configuracion > Aplicaciones > Aplicaciones instaladas (o "Agregar o
+   quitar programas") y elige ShortcutLG > Desinstalar.
+   Tambien puedes ejecutar directamente:
+   %LOCALAPPDATA%\Programs\ShortcutLG\Uninstall.exe
+2. El desinstalador cierra la aplicacion y quita los accesos directos, el
+   inicio automatico y la entrada de Aplicaciones.
+3. La carpeta %LOCALAPPDATA%\ShortcutLG se conserva para no perder la
+   autorizacion de la TV. Marca "Eliminar tambien la configuracion y la
+   autorizacion de la TV" si quieres borrarla tambien.
+
+Version portable:
+1. Menu del icono > desmarca "Iniciar con Windows".
+2. Menu del icono > "Salir".
+3. Borra ShortcutLG.exe y, si quieres, la carpeta
+   %LOCALAPPDATA%\ShortcutLG.
+
+Si borraste el exe sin desmarcar el inicio automatico, elimina el valor
+"ShortcutLG" de:
+HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run

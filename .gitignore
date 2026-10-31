@@ -1,0 +1,18 @@
+# Binarios compilados: se generan con build.bat / build-setup.bat
+*.exe
+*.dll
+
+# Respaldos locales
+*.bak*
+*.bak
+
+# Datos de la app (contienen la clave de autorizacion de la TV: nunca subir)
+tray.ini
+tray.log
+keep-me.txt
+
+# Salidas de compilacion de .NET
+bin/
+obj/
+*.user
+.vs/
