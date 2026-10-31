@@ -78,8 +78,13 @@ Haz clic en el icono de la bandeja (izquierdo o derecho):
 - "Conectar a una TV..." / "Conectar a otra TV...": cambia la IP y empareja.
 - "Cambiar combinaciones de teclas...": editor de los cuatro atajos.
 - "Iniciar con Windows": arranca solo al iniciar sesion.
+- "No ocultar el menú": con la marca puesta, el menú se queda abierto al
+  pulsar una acción, para subir el volumen varias veces (o pulsar otra
+  acción) sin abrir el menú de nuevo. Se cierra con Escape o con un clic
+  fuera. La opción se guarda y queda igual al volver a abrir la app.
 - "Abrir carpeta de datos": abre la carpeta de configuracion y el registro.
-- "Salir": cierra la aplicacion y libera los atajos.
+- "Salir": cierra solo el menú, la aplicacion sigue en la bandeja.
+- "Salir de la app": cierra la aplicacion y libera los atajos.
 
 
 ATAJOS DE TECLADO

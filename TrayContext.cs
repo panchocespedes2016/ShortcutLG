@@ -123,15 +123,31 @@ namespace LgHdmiTray
             startupItem.Click += StartupItemClick;
             menu.Items.Add(startupItem);
 
+            ToolStripMenuItem keepOpenItem = new ToolStripMenuItem("No ocultar el menú");
+            keepOpenItem.CheckOnClick = true;
+            keepOpenItem.Checked = config.KeepMenuOpen;
+            keepOpenItem.Click += KeepOpenItemClick;
+            menu.Items.Add(keepOpenItem);
+
             ToolStripMenuItem dataItem = new ToolStripMenuItem("Abrir carpeta de datos");
             dataItem.Click += delegate { OpenDataFolder(); };
             menu.Items.Add(dataItem);
 
             menu.Items.Add(new ToolStripSeparator());
 
-            ToolStripMenuItem exitItem = new ToolStripMenuItem("Salir");
+            ToolStripMenuItem closeItem = new ToolStripMenuItem("Salir");
+            closeItem.Click += delegate { if (menu != null) menu.Close(); };
+            menu.Items.Add(closeItem);
+
+            ToolStripMenuItem exitItem = new ToolStripMenuItem("Salir de la app");
             exitItem.Click += delegate { ExitTray(); };
             menu.Items.Add(exitItem);
+
+            // Con "No ocultar el menú" activado, el menú se queda abierto
+            // al pulsar una acción (p. ej. Volumen + varias veces). Solo
+            // se cancela el cierre por clic en un elemento: Escape, clic
+            // fuera o cerrar desde el código siguen cerrándolo.
+            menu.Closing += MenuClosing;
 
             tray.ContextMenuStrip = menu;
             if (oldMenu != null) oldMenu.Dispose();
@@ -158,6 +174,27 @@ namespace LgHdmiTray
             if (!config.IsConfigured) ShowTvSettings();
         }
 
+        private void MenuClosing(object sender, ToolStripDropDownClosingEventArgs e)
+        {
+            if (e.CloseReason == ToolStripDropDownCloseReason.ItemClicked && config.KeepMenuOpen)
+                e.Cancel = true;
+        }
+
+        private void KeepOpenItemClick(object sender, EventArgs e)
+        {
+            ToolStripMenuItem item = sender as ToolStripMenuItem;
+            if (item == null) return;
+            config.KeepMenuOpen = item.Checked;
+            try
+            {
+                config.Save();
+            }
+            catch (Exception ex)
+            {
+                Log.Write("No se pudo guardar No ocultar el menú: " + ex.Message);
+            }
+        }
+
         private void StartupItemClick(object sender, EventArgs e)
         {
             ToolStripMenuItem item = sender as ToolStripMenuItem;
@@ -178,6 +215,7 @@ namespace LgHdmiTray
 
         private void OpenDataFolder()
         {
+            if (menu != null) menu.Close();
             try
             {
                 Process.Start("explorer.exe", "\"" + AppConfig.DataDirectory + "\"");
@@ -325,6 +363,7 @@ namespace LgHdmiTray
         private void ShowTvSettings()
         {
             if (dialogOpen || disposed) return;
+            if (menu != null) menu.Close();
             dialogOpen = true;
             try
             {
@@ -346,6 +385,7 @@ namespace LgHdmiTray
         private void ShowHotkeySettings()
         {
             if (dialogOpen || disposed) return;
+            if (menu != null) menu.Close();
             dialogOpen = true;
             bool applied = false;
             hotkeys.UnregisterAll();

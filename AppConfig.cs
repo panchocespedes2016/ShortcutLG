@@ -11,12 +11,14 @@ namespace LgHdmiTray
         public string TvIp;
         public string ClientKey;
         public Hotkey[] Hotkeys;
+        public bool KeepMenuOpen;
 
         public AppConfig()
         {
             TvIp = "";
             ClientKey = "";
             Hotkeys = DefaultHotkeys();
+            KeepMenuOpen = false;
         }
 
         // Acciones en el orden de los atajos: 0-3 HDMI, 4 volumen +,
@@ -103,6 +105,9 @@ namespace LgHdmiTray
                 string value;
                 if (values.TryGetValue("TvIp", out value)) cfg.TvIp = value;
                 if (values.TryGetValue("ClientKey", out value)) cfg.ClientKey = value;
+                if (values.TryGetValue("KeepMenuOpen", out value))
+                    cfg.KeepMenuOpen = value == "1" ||
+                        string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
                 for (int i = 0; i < ActionCount; i++)
                 {
                     Hotkey hk;
@@ -127,6 +132,7 @@ namespace LgHdmiTray
                 lines.Add("# Configuracion de ShortcutLG");
                 lines.Add("TvIp=" + (TvIp ?? ""));
                 lines.Add("ClientKey=" + (ClientKey ?? ""));
+                lines.Add("KeepMenuOpen=" + (KeepMenuOpen ? "1" : "0"));
                 for (int i = 0; i < ActionCount; i++)
                     lines.Add("Hotkey" + (i + 1) + "=" + (Hotkeys[i] != null ? Hotkeys[i].ToString() : ""));
                 File.WriteAllLines(ConfigPath, lines.ToArray(), new UTF8Encoding(false));

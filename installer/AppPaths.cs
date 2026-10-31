@@ -7,7 +7,7 @@ namespace ShortcutLGSetup
     internal static class AppPaths
     {
         public const string AppName = "ShortcutLG";
-        public const string Version = "1.1.1";
+        public const string Version = "1.1.2";
         public const string RunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
         public const string RunValueName = "ShortcutLG";
         public const string UninstallKeyPath =
