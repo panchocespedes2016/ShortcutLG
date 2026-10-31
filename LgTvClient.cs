@@ -130,6 +130,13 @@ namespace LgHdmiTray
                 CancellationToken.None).GetAwaiter().GetResult();
         }
 
+        private static void SendText(ClientWebSocket ws, string text)
+        {
+            byte[] bytes = Encoding.UTF8.GetBytes(text);
+            ws.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true,
+                CancellationToken.None).GetAwaiter().GetResult();
+        }
+
         private static Dictionary<string, object> ReceiveJson(ClientWebSocket ws, int timeoutMs)
         {
             byte[] buffer = new byte[65536];
@@ -417,6 +424,159 @@ namespace LgHdmiTray
             }
             finally
             {
+                if (ws != null) { try { ws.Dispose(); } catch { } }
+            }
+        }
+
+        // Orden SSAP sin carga util fija (volumen, apagar, lanzar app...).
+        // Mismos URIs que lgtv.py de pi3. No toca el camino de Switch
+        // (HDMI), que queda exactamente igual.
+        public static LgResult Command(string ip, string clientKey, string uri,
+            Dictionary<string, object> payload)
+        {
+            LgResult result = new LgResult();
+            ClientWebSocket ws = null;
+            try
+            {
+                if (string.IsNullOrWhiteSpace(ip))
+                {
+                    result.Error = "No hay una TV configurada.";
+                    return result;
+                }
+                if (string.IsNullOrWhiteSpace(clientKey))
+                {
+                    result.Error = "La TV no esta emparejada. Abre Configurar TV y pulsa Emparejar TV.";
+                    return result;
+                }
+
+                ws = Connect(ip, 8000);
+                string newKey;
+                bool pairingFailed;
+                string error;
+                bool registered = Register(ws, clientKey, 10000,
+                    out newKey, out pairingFailed, out error);
+                if (!registered)
+                {
+                    result.PairingFailed = pairingFailed;
+                    result.Error = pairingFailed && !string.IsNullOrWhiteSpace(clientKey)
+                        ? "La TV no acepto la autorizacion guardada. Abre Configurar TV y empareja de nuevo."
+                        : error;
+                    return result;
+                }
+                result.ClientKey = string.IsNullOrWhiteSpace(newKey) ? clientKey : newKey;
+
+                SendRequest(ws, uri, payload ?? new Dictionary<string, object>(), 6000);
+                result.Ok = true;
+                return result;
+            }
+            catch (Exception ex)
+            {
+                result.Error = FriendlyError(ex, ip);
+                Log.Write("Error en orden " + uri + ": " + ex);
+                return result;
+            }
+            finally
+            {
+                if (ws != null) { try { ws.Dispose(); } catch { } }
+            }
+        }
+
+        public static LgResult Home(string ip, string clientKey)
+        {
+            LgResult result = Command(ip, clientKey, "ssap://system.launcher/launch",
+                Payload("id", "com.webos.app.home"));
+            if (result.Ok) return result;
+            Log.Write("Inicio por launcher fallo (" + result.Error + "); probando boton HOME.");
+            return Button(ip, clientKey, "HOME");
+        }
+
+        // Botones del mando (OK, flechas, Exit...) por el socket de entrada:
+        // se pide ssap://com.webos.service.networkinput/getPointerInputSocket,
+        // la TV devuelve socketPath y se abre un segundo WebSocket a esa ruta.
+        // El boton va como texto plano "type:button\nname:XXX\n\n", igual
+        // que LGWebOSRemote (LGTV/cursor.py). No hay respuesta estructurada:
+        // si el envio no falla, se da por enviado.
+        public static LgResult Button(string ip, string clientKey, string buttonName)
+        {
+            LgResult result = new LgResult();
+            ClientWebSocket ws = null;
+            ClientWebSocket input = null;
+            try
+            {
+                if (string.IsNullOrWhiteSpace(ip))
+                {
+                    result.Error = "No hay una TV configurada.";
+                    return result;
+                }
+                if (string.IsNullOrWhiteSpace(clientKey))
+                {
+                    result.Error = "La TV no esta emparejada. Abre Configurar TV y pulsa Emparejar TV.";
+                    return result;
+                }
+
+                ws = Connect(ip, 8000);
+                string newKey;
+                bool pairingFailed;
+                string error;
+                bool registered = Register(ws, clientKey, 10000,
+                    out newKey, out pairingFailed, out error);
+                if (!registered)
+                {
+                    result.PairingFailed = pairingFailed;
+                    result.Error = pairingFailed && !string.IsNullOrWhiteSpace(clientKey)
+                        ? "La TV no acepto la autorizacion guardada. Abre Configurar TV y empareja de nuevo."
+                        : error;
+                    return result;
+                }
+                result.ClientKey = string.IsNullOrWhiteSpace(newKey) ? clientKey : newKey;
+
+                Dictionary<string, object> response = SendRequest(ws,
+                    "ssap://com.webos.service.networkinput/getPointerInputSocket",
+                    new Dictionary<string, object>(), 6000);
+                string socketPath = null;
+                object payloadObject;
+                if (response != null && response.TryGetValue("payload", out payloadObject))
+                {
+                    Dictionary<string, object> payloadDict =
+                        payloadObject as Dictionary<string, object>;
+                    if (payloadDict != null)
+                        socketPath = GetString(payloadDict, "socketPath");
+                }
+                if (string.IsNullOrWhiteSpace(socketPath))
+                {
+                    result.Error = "La TV no devolvio el canal de entrada (socketPath).";
+                    Log.Write("Boton " + buttonName + ": sin socketPath en la respuesta.");
+                    return result;
+                }
+
+                string inputUrl;
+                if (socketPath.StartsWith("ws://", StringComparison.OrdinalIgnoreCase) ||
+                    socketPath.StartsWith("wss://", StringComparison.OrdinalIgnoreCase))
+                {
+                    inputUrl = socketPath;
+                }
+                else
+                {
+                    string host = ip.Contains(":") ? "[" + ip + "]" : ip;
+                    string path = socketPath.StartsWith("/") ? socketPath : "/" + socketPath;
+                    inputUrl = "ws://" + host + ":" + Port + path;
+                }
+
+                input = ConnectSocket(new Uri(inputUrl), 5000);
+                SendText(input, "type:button\nname:" + buttonName + "\n\n");
+                Thread.Sleep(150);
+                result.Ok = true;
+                return result;
+            }
+            catch (Exception ex)
+            {
+                result.Error = FriendlyError(ex, ip);
+                Log.Write("Error en boton " + buttonName + ": " + ex);
+                return result;
+            }
+            finally
+            {
+                if (input != null) { try { input.Dispose(); } catch { } }
                 if (ws != null) { try { ws.Dispose(); } catch { } }
             }
         }

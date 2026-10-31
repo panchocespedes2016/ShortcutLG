@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Threading;
@@ -53,8 +54,7 @@ namespace LgHdmiTray
             }
             else
             {
-                Log.Write("Atajos registrados: " + config.Hotkeys[0] + ", " + config.Hotkeys[1] +
-                          ", " + config.Hotkeys[2] + ", " + config.Hotkeys[3]);
+                Log.Write("Atajos registrados: " + HotkeyListText(config.Hotkeys));
             }
 
             try
@@ -92,13 +92,15 @@ namespace LgHdmiTray
             menu.Items.Add(statusItem);
             menu.Items.Add(new ToolStripSeparator());
 
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < AppConfig.ActionCount; i++)
             {
-                int number = i + 1;
-                ToolStripMenuItem item = new ToolStripMenuItem("HDMI " + number);
-                if (config.Hotkeys[i] != null)
+                if (i == AppConfig.ActionVolumeUp || i == AppConfig.ActionOk)
+                    menu.Items.Add(new ToolStripSeparator());
+                int action = i;
+                ToolStripMenuItem item = new ToolStripMenuItem(AppConfig.ActionNames[i]);
+                if (config.Hotkeys != null && i < config.Hotkeys.Length && config.Hotkeys[i] != null)
                     item.ShortcutKeyDisplayString = config.Hotkeys[i].ToString();
-                item.Click += delegate { SwitchAsync(number); };
+                item.Click += delegate { RunActionAsync(action); };
                 menu.Items.Add(item);
             }
 
@@ -189,19 +191,30 @@ namespace LgHdmiTray
         private void WindowHotkeyPressed(object sender, HotkeyEventArgs e)
         {
             if (dialogOpen || disposed) return;
-            if (e.Id < 1 || e.Id > 4) return;
-            SwitchAsync(e.Id);
+            if (e.Id < 1 || e.Id > AppConfig.ActionCount) return;
+            RunActionAsync(e.Id - 1);
         }
 
-        private void SwitchAsync(int number)
+        private void RunActionAsync(int action)
         {
             if (disposed) return;
+            if (action < 0 || action >= AppConfig.ActionCount) return;
+
+            // Apagar pide confirmacion: un atajo accidental no debe apagar la TV.
+            if (action == AppConfig.ActionPowerOff)
+            {
+                DialogResult confirm = MessageBox.Show(
+                    "¿Apagar la TV?", "ShortcutLG",
+                    MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                if (confirm != DialogResult.Yes) return;
+            }
+
             if (Interlocked.CompareExchange(ref switchBusy, 1, 0) != 0) return;
 
             if (!config.IsConfigured)
             {
                 Interlocked.Exchange(ref switchBusy, 0);
-                ShowBalloon("ShortcutLG", "Configura la TV antes de cambiar de entrada.",
+                ShowBalloon("ShortcutLG", "Configura la TV antes de usar los controles.",
                     ToolTipIcon.Warning, 4000);
                 ShowTvSettings();
                 return;
@@ -209,9 +222,9 @@ namespace LgHdmiTray
 
             string ip = config.TvIp;
             string key = config.ClientKey;
-            Log.Write("Cambiando a HDMI " + number + " en " + ip);
+            Log.Write(AppConfig.ActionNames[action] + " en " + ip);
 
-            Task.Run(() => LgTvClient.Switch(ip, key, number)).ContinueWith(delegate(Task<LgResult> task)
+            Task.Run(() => RunAction(ip, key, action)).ContinueWith(delegate(Task<LgResult> task)
             {
                 LgResult result;
                 try
@@ -227,7 +240,7 @@ namespace LgHdmiTray
 
                 try
                 {
-                    window.BeginInvoke(new Action(delegate { FinishSwitch(number, ip, result); }));
+                    window.BeginInvoke(new Action(delegate { FinishAction(action, ip, result); }));
                 }
                 catch
                 {
@@ -236,13 +249,43 @@ namespace LgHdmiTray
             });
         }
 
-        private void FinishSwitch(int number, string ip, LgResult result)
+        private static LgResult RunAction(string ip, string key, int action)
+        {
+            if (action >= 0 && action <= 3)
+                return LgTvClient.Switch(ip, key, action + 1);
+            if (action == AppConfig.ActionVolumeUp)
+                return LgTvClient.Command(ip, key, "ssap://audio/volumeUp", null);
+            if (action == AppConfig.ActionVolumeDown)
+                return LgTvClient.Command(ip, key, "ssap://audio/volumeDown", null);
+            if (action == AppConfig.ActionPowerOff)
+                return LgTvClient.Command(ip, key, "ssap://system/turnOff", null);
+            if (action == AppConfig.ActionHome)
+                return LgTvClient.Home(ip, key);
+            if (action == AppConfig.ActionOk)
+                return LgTvClient.Button(ip, key, "ENTER");
+            if (action == AppConfig.ActionUp)
+                return LgTvClient.Button(ip, key, "UP");
+            if (action == AppConfig.ActionDown)
+                return LgTvClient.Button(ip, key, "DOWN");
+            if (action == AppConfig.ActionLeft)
+                return LgTvClient.Button(ip, key, "LEFT");
+            if (action == AppConfig.ActionRight)
+                return LgTvClient.Button(ip, key, "RIGHT");
+            if (action == AppConfig.ActionExit)
+                return LgTvClient.Button(ip, key, "EXIT");
+            LgResult result = new LgResult();
+            result.Error = "Accion desconocida.";
+            return result;
+        }
+
+        private void FinishAction(int action, string ip, LgResult result)
         {
             Interlocked.Exchange(ref switchBusy, 0);
+            string name = AppConfig.ActionNames[action];
 
             if (result == null)
             {
-                ShowBalloon("No se pudo cambiar a HDMI " + number,
+                ShowBalloon("No se pudo ejecutar " + name,
                     "Error desconocido.", ToolTipIcon.Error, 6000);
                 return;
             }
@@ -264,14 +307,19 @@ namespace LgHdmiTray
 
             if (result.Ok)
             {
-                Log.Write("HDMI " + number + " activado.");
+                if (action >= 0 && action <= 3)
+                    Log.Write("HDMI " + (action + 1) + " activado.");
+                else if (action == AppConfig.ActionPowerOff)
+                    Log.Write("TV apagada.");
+                else
+                    Log.Write(name + ": OK.");
                 return;
             }
 
             string error = string.IsNullOrWhiteSpace(result.Error)
-                ? "No se pudo cambiar de entrada." : result.Error;
-            Log.Write("Error HDMI " + number + ": " + error);
-            ShowBalloon("No se pudo cambiar a HDMI " + number, error, ToolTipIcon.Error, 6000);
+                ? "No se pudo ejecutar la accion." : result.Error;
+            Log.Write("Error " + name + ": " + error);
+            ShowBalloon("No se pudo ejecutar " + name, error, ToolTipIcon.Error, 6000);
         }
 
         private void ShowTvSettings()
@@ -330,17 +378,26 @@ namespace LgHdmiTray
             }
         }
 
+        private static string HotkeyListText(Hotkey[] hotkeys)
+        {
+            List<string> parts = new List<string>();
+            if (hotkeys != null)
+                foreach (Hotkey hk in hotkeys)
+                    parts.Add(hk != null ? hk.ToString() : "?");
+            return string.Join(", ", parts.ToArray());
+        }
+
         private string ApplyHotkeys(Hotkey[] newHotkeys)
         {
-            if (newHotkeys == null || newHotkeys.Length < 4)
+            if (newHotkeys == null || newHotkeys.Length < AppConfig.ActionCount)
                 return "Faltan atajos por configurar.";
 
             string error = hotkeys.TryRegisterAll(newHotkeys);
             if (error != null) return error;
 
             Hotkey[] previous = config.Hotkeys;
-            Hotkey[] copy = new Hotkey[4];
-            for (int i = 0; i < 4; i++)
+            Hotkey[] copy = new Hotkey[AppConfig.ActionCount];
+            for (int i = 0; i < AppConfig.ActionCount; i++)
                 copy[i] = newHotkeys[i].Clone();
             config.Hotkeys = copy;
 
@@ -356,8 +413,7 @@ namespace LgHdmiTray
                 return "No se pudo guardar la configuracion: " + ex.Message;
             }
 
-            Log.Write("Atajos guardados: " + copy[0] + ", " + copy[1] + ", " +
-                      copy[2] + ", " + copy[3]);
+            Log.Write("Atajos guardados: " + HotkeyListText(copy));
             RebuildMenu();
             return null;
         }

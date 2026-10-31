@@ -82,13 +82,15 @@ namespace LgHdmiTray
             UnregisterAll();
             if (hotkeys == null) return "No hay atajos configurados.";
 
-            for (int i = 0; i < hotkeys.Length && i < 4; i++)
+            for (int i = 0; i < hotkeys.Length; i++)
             {
                 Hotkey hotkey = hotkeys[i];
                 if (hotkey == null || !hotkey.IsValid)
                 {
                     UnregisterAll();
-                    return "El atajo de HDMI " + (i + 1) + " no es valido.";
+                    string name = i >= 0 && i < AppConfig.ActionNames.Length
+                        ? AppConfig.ActionNames[i] : "accion " + (i + 1);
+                    return "El atajo de " + name + " no es valido.";
                 }
                 if (!NativeMethods.RegisterHotKey(handle, i + 1, hotkey.RegisterModifiers,
                     (uint)hotkey.Key))
@@ -104,7 +106,7 @@ namespace LgHdmiTray
 
         public void UnregisterAll()
         {
-            for (int i = 1; i <= 4; i++)
+            for (int i = 1; i <= AppConfig.ActionCount; i++)
                 NativeMethods.UnregisterHotKey(handle, i);
         }
 

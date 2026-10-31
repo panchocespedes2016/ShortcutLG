@@ -19,14 +19,48 @@ namespace LgHdmiTray
             Hotkeys = DefaultHotkeys();
         }
 
+        // Acciones en el orden de los atajos: 0-3 HDMI, 4 volumen +,
+        // 5 volumen -, 6 apagar, 7 inicio, 8 OK, 9-12 flechas, 13 Exit.
+        // Los indices 0-3 conservan los nombres Hotkey1..Hotkey4 de tray.ini.
+        public const int ActionCount = 14;
+        public const int ActionVolumeUp = 4;
+        public const int ActionVolumeDown = 5;
+        public const int ActionPowerOff = 6;
+        public const int ActionHome = 7;
+        public const int ActionOk = 8;
+        public const int ActionUp = 9;
+        public const int ActionDown = 10;
+        public const int ActionLeft = 11;
+        public const int ActionRight = 12;
+        public const int ActionExit = 13;
+
+        public static readonly string[] ActionNames = new string[]
+        {
+            "HDMI 1", "HDMI 2", "HDMI 3", "HDMI 4",
+            "Volumen +", "Volumen -", "Apagar TV", "Inicio",
+            "Aceptar (OK)", "Arriba", "Abajo", "Izquierda", "Derecha", "Exit"
+        };
+
         public static Hotkey[] DefaultHotkeys()
         {
+            uint was = NativeMethods.MOD_WIN | NativeMethods.MOD_ALT | NativeMethods.MOD_SHIFT;
+            uint wa = NativeMethods.MOD_WIN | NativeMethods.MOD_ALT;
             return new Hotkey[]
             {
-                new Hotkey(NativeMethods.MOD_WIN | NativeMethods.MOD_ALT | NativeMethods.MOD_SHIFT, Keys.D1),
-                new Hotkey(NativeMethods.MOD_WIN | NativeMethods.MOD_ALT | NativeMethods.MOD_SHIFT, Keys.D2),
-                new Hotkey(NativeMethods.MOD_WIN | NativeMethods.MOD_ALT | NativeMethods.MOD_SHIFT, Keys.D3),
-                new Hotkey(NativeMethods.MOD_WIN | NativeMethods.MOD_ALT | NativeMethods.MOD_SHIFT, Keys.D4)
+                new Hotkey(was, Keys.D1),
+                new Hotkey(was, Keys.D2),
+                new Hotkey(was, Keys.D3),
+                new Hotkey(was, Keys.D4),
+                new Hotkey(wa, Keys.Up),
+                new Hotkey(wa, Keys.Down),
+                new Hotkey(was, Keys.P),
+                new Hotkey(was, Keys.Home),
+                new Hotkey(was, Keys.Return),
+                new Hotkey(was, Keys.Up),
+                new Hotkey(was, Keys.Down),
+                new Hotkey(was, Keys.Left),
+                new Hotkey(was, Keys.Right),
+                new Hotkey(was, Keys.Escape)
             };
         }
 
@@ -69,7 +103,7 @@ namespace LgHdmiTray
                 string value;
                 if (values.TryGetValue("TvIp", out value)) cfg.TvIp = value;
                 if (values.TryGetValue("ClientKey", out value)) cfg.ClientKey = value;
-                for (int i = 0; i < 4; i++)
+                for (int i = 0; i < ActionCount; i++)
                 {
                     Hotkey hk;
                     if (values.TryGetValue("Hotkey" + (i + 1), out value) &&
@@ -93,7 +127,7 @@ namespace LgHdmiTray
                 lines.Add("# Configuracion de ShortcutLG");
                 lines.Add("TvIp=" + (TvIp ?? ""));
                 lines.Add("ClientKey=" + (ClientKey ?? ""));
-                for (int i = 0; i < 4; i++)
+                for (int i = 0; i < ActionCount; i++)
                     lines.Add("Hotkey" + (i + 1) + "=" + (Hotkeys[i] != null ? Hotkeys[i].ToString() : ""));
                 File.WriteAllLines(ConfigPath, lines.ToArray(), new UTF8Encoding(false));
             }

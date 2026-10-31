@@ -8,6 +8,10 @@ C# WinForms sobre .NET Framework 4.8, sin dependencias externas ni instalador ob
 
 Versión 1.0.0.0, 31 de octubre de 2026. Cambio de HDMI 1–4 verificado en una TV LG con webOS 3.4.3. El manifiesto de emparejamiento es el mismo que el del script `lgtv.py` que controla esa TV desde septiembre de 2026: conexión `ws` sin cifrar al puerto 3000, sin bloque firmado. La clave de autorización queda ligada al manifiesto con el que se emparejó; si se cambia el manifiesto, hay que emparejar de nuevo (ver `clear-key.ps1`).
 
+## Versión 1.1.0.0
+
+Añade al menú y a los atajos: volumen +/−, apagar (pide confirmación), Inicio, Aceptar (OK), flechas y Exit. Volumen, apagar e Inicio van por órdenes SSAP sobre el mismo canal; OK, flechas y Exit van como botones del mando por el socket de entrada (`getPointerInputSocket`, protocolo de texto `type:button`).
+
 ## Uso
 
 1. Ejecuta `ShortcutLG.exe`. Aparece un icono junto al reloj.

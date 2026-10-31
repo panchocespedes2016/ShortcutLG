@@ -1,8 +1,9 @@
 ShortcutLG
 =========
 
-Aplicacion de bandeja para cambiar la entrada HDMI de una TV LG webOS con
-atajos de teclado globales.
+Aplicacion de bandeja para cambiar la entrada HDMI de una TV LG webOS,
+controlar el volumen, apagarla y usar el mando (OK, flechas, Inicio y Exit)
+con atajos de teclado globales.
 
 Archivos:
   ShortcutLG.exe        version portable; no necesita instalacion.
@@ -69,6 +70,11 @@ Haz clic en el icono de la bandeja (izquierdo o derecho):
   conexion permanente.
 - "HDMI 1" ... "HDMI 4": cambia la TV a esa entrada. A la derecha se muestra el
   atajo asignado.
+- "Volumen +" / "Volumen -": sube o baja el volumen un paso.
+- "Apagar TV": apaga la TV. Pide confirmacion antes de apagar.
+- "Inicio": abre la pantalla de inicio de webOS.
+- "Aceptar (OK)", "Arriba", "Abajo", "Izquierda", "Derecha": botones del mando.
+- "Exit": boton Exit del mando.
 - "Conectar a una TV..." / "Conectar a otra TV...": cambia la IP y empareja.
 - "Cambiar combinaciones de teclas...": editor de los cuatro atajos.
 - "Iniciar con Windows": arranca solo al iniciar sesion.
@@ -83,13 +89,23 @@ Por defecto:
   HDMI 2 = Win + Alt + Shift + 2
   HDMI 3 = Win + Alt + Shift + 3
   HDMI 4 = Win + Alt + Shift + 4
+  Volumen + = Win + Alt + Flecha arriba
+  Volumen - = Win + Alt + Flecha abajo
+  Apagar TV = Win + Alt + Shift + P (pide confirmacion)
+  Inicio = Win + Alt + Shift + Inicio (tecla Home)
+  Aceptar (OK) = Win + Alt + Shift + Enter
+  Arriba = Win + Alt + Shift + Flecha arriba
+  Abajo = Win + Alt + Shift + Flecha abajo
+  Izquierda = Win + Alt + Shift + Flecha izquierda
+  Derecha = Win + Alt + Shift + Flecha derecha
+  Exit = Win + Alt + Shift + Esc
 
 Windows reserva Win+Alt+1..4 para las listas de la barra de tareas, por eso
 los atajos por defecto incluyen Shift. Puedes usar otras combinaciones, por
 ejemplo Ctrl+Alt+1..4.
 
 Para cambiarlos: menu > "Cambiar combinaciones de teclas...". Haz clic en la
-casilla de cada HDMI y pulsa la combinacion deseada. Debe incluir Ctrl, Alt o
+casilla de cada accion y pulsa la combinacion deseada. Debe incluir Ctrl, Alt o
 Win. Pulsa "Guardar". Si una combinacion ya la usa otro programa, la app avisa
 y mantiene los atajos anteriores.
 

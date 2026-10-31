@@ -16,24 +16,24 @@ namespace LgHdmiTray
         public HotkeyForm(Hotkey[] current, Func<Hotkey[], string> apply)
         {
             this.apply = apply;
-            working = new Hotkey[4];
-            boxes = new TextBox[4];
+            working = new Hotkey[AppConfig.ActionCount];
+            boxes = new TextBox[AppConfig.ActionCount];
             Hotkey[] defaults = AppConfig.DefaultHotkeys();
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < AppConfig.ActionCount; i++)
             {
                 Hotkey source = current != null && i < current.Length && current[i] != null
                     ? current[i] : defaults[i];
                 working[i] = source.Clone();
             }
             InitializeUi();
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < AppConfig.ActionCount; i++)
                 boxes[i].Text = working[i].ToString();
         }
 
         private void InitializeUi()
         {
             Text = "Cambiar combinaciones de teclas";
-            ClientSize = new Size(470, 320);
+            ClientSize = new Size(470, 570);
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             MinimizeBox = false;
@@ -56,28 +56,35 @@ namespace LgHdmiTray
             description.ForeColor = SystemColors.GrayText;
             Controls.Add(description);
 
-            for (int i = 0; i < 4; i++)
+            Panel panel = new Panel();
+            panel.Location = new Point(20, 84);
+            panel.Size = new Size(430, 360);
+            panel.AutoScroll = true;
+            panel.BorderStyle = BorderStyle.FixedSingle;
+            Controls.Add(panel);
+
+            for (int i = 0; i < AppConfig.ActionCount; i++)
             {
                 Label label = new Label();
-                label.Text = "HDMI " + (i + 1);
+                label.Text = AppConfig.ActionNames[i];
                 label.AutoSize = true;
-                label.Location = new Point(24, 92 + i * 36);
-                Controls.Add(label);
+                label.Location = new Point(6, 8 + i * 36);
+                panel.Controls.Add(label);
 
                 TextBox box = new TextBox();
-                box.Location = new Point(110, 88 + i * 36);
-                box.Size = new Size(320, 25);
+                box.Location = new Point(112, 4 + i * 36);
+                box.Size = new Size(288, 25);
                 box.ReadOnly = true;
                 box.TextAlign = HorizontalAlignment.Center;
                 box.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
                 box.KeyDown += HotkeyBoxKeyDown;
                 box.Enter += HotkeyBoxEnter;
-                Controls.Add(box);
+                panel.Controls.Add(box);
                 boxes[i] = box;
             }
 
             hintLabel = new Label();
-            hintLabel.Location = new Point(24, 232);
+            hintLabel.Location = new Point(24, 458);
             hintLabel.Size = new Size(420, 34);
             hintLabel.ForeColor = SystemColors.GrayText;
             hintLabel.Text = "Debe incluir Ctrl, Alt o Win. Win+Alt+1..4 esta reservado por Windows.";
@@ -85,21 +92,21 @@ namespace LgHdmiTray
 
             Button resetButton = new Button();
             resetButton.Text = "Restablecer";
-            resetButton.Location = new Point(22, 274);
+            resetButton.Location = new Point(22, 506);
             resetButton.Size = new Size(110, 32);
             resetButton.Click += ResetButtonClick;
             Controls.Add(resetButton);
 
             Button saveButton = new Button();
             saveButton.Text = "Guardar";
-            saveButton.Location = new Point(260, 274);
+            saveButton.Location = new Point(260, 506);
             saveButton.Size = new Size(90, 32);
             saveButton.Click += SaveButtonClick;
             Controls.Add(saveButton);
 
             Button cancelButton = new Button();
             cancelButton.Text = "Cancelar";
-            cancelButton.Location = new Point(360, 274);
+            cancelButton.Location = new Point(360, 506);
             cancelButton.Size = new Size(90, 32);
             cancelButton.Click += CancelButtonClick;
             Controls.Add(cancelButton);
@@ -146,7 +153,7 @@ namespace LgHdmiTray
         private void ResetButtonClick(object sender, EventArgs e)
         {
             Hotkey[] defaults = AppConfig.DefaultHotkeys();
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < AppConfig.ActionCount; i++)
             {
                 working[i] = defaults[i].Clone();
                 boxes[i].Text = working[i].ToString();
@@ -156,12 +163,12 @@ namespace LgHdmiTray
 
         private void SaveButtonClick(object sender, EventArgs e)
         {
-            Hotkey[] result = new Hotkey[4];
-            for (int i = 0; i < 4; i++)
+            Hotkey[] result = new Hotkey[AppConfig.ActionCount];
+            for (int i = 0; i < AppConfig.ActionCount; i++)
             {
                 if (working[i] == null || !working[i].IsValid)
                 {
-                    MessageBox.Show(this, "El atajo de HDMI " + (i + 1) + " no es valido.",
+                    MessageBox.Show(this, "El atajo de " + AppConfig.ActionNames[i] + " no es valido.",
                         "Atajos", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     boxes[i].Focus();
                     return;
@@ -169,14 +176,15 @@ namespace LgHdmiTray
                 result[i] = working[i].Clone();
             }
 
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < AppConfig.ActionCount; i++)
             {
-                for (int j = i + 1; j < 4; j++)
+                for (int j = i + 1; j < AppConfig.ActionCount; j++)
                 {
                     if (result[i].Modifiers == result[j].Modifiers && result[i].Key == result[j].Key)
                     {
                         MessageBox.Show(this,
-                            "HDMI " + (i + 1) + " y HDMI " + (j + 1) + " tienen el mismo atajo.",
+                            AppConfig.ActionNames[i] + " y " + AppConfig.ActionNames[j] +
+                            " tienen el mismo atajo.",
                             "Atajos", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                         return;
                     }
