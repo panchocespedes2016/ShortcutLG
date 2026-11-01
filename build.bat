@@ -14,7 +14,7 @@ if not exist "%CSC%" (
     /win32icon:app.ico /win32manifest:app.manifest ^
     /r:System.dll /r:System.Core.dll /r:System.Windows.Forms.dll ^
     /r:System.Drawing.dll /r:System.Web.Extensions.dll /r:System.Management.dll ^
-    Hotkey.cs AppConfig.cs LgTvClient.cs MonitorInfo.cs ^
+    Hotkey.cs AppConfig.cs LgTvClient.cs MonitorInfo.cs RemoteForm.cs ^
     TvSettingsForm.cs HotkeyForm.cs Program.cs TrayContext.cs AssemblyInfo.cs
 
 if errorlevel 1 (

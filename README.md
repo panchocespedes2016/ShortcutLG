@@ -71,3 +71,7 @@ Opción «No ocultar el menú» en el menú del icono: con la marca puesta, el m
 ## Versión 1.1.3 (experimento)
 
 El manifiesto añade `CONTROL_INPUT_TEXT` y `CONTROL_MOUSE_AND_KEYBOARD` (no están en `lgtv.py`) porque sin ellos la TV niega el socket de entrada con 401 y no funcionan OK/flechas/Exit ni el botón HOME. Exige re-emparejar para que la TV emita una clave con el nuevo alcance.
+
+## Versión 1.1.4
+
+Mando flotante: el menú tiene «Despegar mando flotante», que abre una ventanita siempre visible con los 14 botones. Recuerda su posición y vuelve a abrirse al arrancar si quedó abierto; la X solo cierra el mando.

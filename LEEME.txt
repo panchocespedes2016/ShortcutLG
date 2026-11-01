@@ -78,6 +78,11 @@ Haz clic en el icono de la bandeja (izquierdo o derecho):
 - "Conectar a una TV..." / "Conectar a otra TV...": cambia la IP y empareja.
 - "Cambiar combinaciones de teclas...": editor de los cuatro atajos.
 - "Iniciar con Windows": arranca solo al iniciar sesion.
+- "Despegar mando flotante": abre el mando en una ventanita que se queda
+  siempre visible, con los mismos botones del menú (HDMI, volumen, apagar,
+  inicio, flechas, OK y Exit). Se puede arrastrar; recuerda su posición y,
+  si queda abierto al salir, vuelve a abrirse al arrancar. La X solo cierra
+  el mando; la aplicacion sigue en la bandeja.
 - "No ocultar el menú": con la marca puesta, el menú se queda abierto al
   pulsar una acción, para subir el volumen varias veces (o pulsar otra
   acción) sin abrir el menú de nuevo. Se cierra con Escape o con un clic

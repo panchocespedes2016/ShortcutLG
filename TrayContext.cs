@@ -15,6 +15,7 @@ namespace LgHdmiTray
         private readonly HotkeyWindow window;
         private readonly HotkeyManager hotkeys;
         private ContextMenuStrip menu;
+        private RemoteForm remoteForm;
         private System.Windows.Forms.Timer firstRunTimer;
         private int switchBusy;
         private bool dialogOpen;
@@ -66,6 +67,9 @@ namespace LgHdmiTray
                 Log.Write("No se pudo reparar el inicio automatico: " + ex.Message);
             }
 
+            if (config.RemoteOpen)
+                ShowRemote();
+
             if (!config.IsConfigured)
             {
                 firstRunTimer = new System.Windows.Forms.Timer();
@@ -90,6 +94,13 @@ namespace LgHdmiTray
             ToolStripMenuItem statusItem = new ToolStripMenuItem(status);
             statusItem.Enabled = false;
             menu.Items.Add(statusItem);
+            menu.Items.Add(new ToolStripSeparator());
+
+            ToolStripMenuItem detachItem = new ToolStripMenuItem("Despegar mando flotante");
+            detachItem.CheckOnClick = true;
+            detachItem.Checked = remoteForm != null && !remoteForm.IsDisposed && remoteForm.Visible;
+            detachItem.Click += ToggleRemote;
+            menu.Items.Add(detachItem);
             menu.Items.Add(new ToolStripSeparator());
 
             for (int i = 0; i < AppConfig.ActionCount; i++)
@@ -155,6 +166,100 @@ namespace LgHdmiTray
             tray.Text = string.IsNullOrWhiteSpace(config.TvIp)
                 ? "ShortcutLG - sin configurar"
                 : "ShortcutLG - " + config.TvIp;
+        }
+
+        private void ToggleRemote(object sender, EventArgs e)
+        {
+            if (remoteForm != null && !remoteForm.IsDisposed)
+            {
+                if (remoteForm.Visible)
+                    HideRemote();
+                else
+                    ShowRemote();
+            }
+            else
+            {
+                ShowRemote();
+            }
+            SyncRemoteCheck();
+        }
+
+        private void ShowRemote()
+        {
+            if (remoteForm == null || remoteForm.IsDisposed)
+            {
+                remoteForm = new RemoteForm(RunActionAsync);
+                remoteForm.FormClosed += RemoteFormClosed;
+                Point loc = RemoteLocation(remoteForm);
+                remoteForm.Location = loc;
+            }
+            ClampRemoteToScreen();
+            remoteForm.Show();
+            remoteForm.BringToFront();
+            config.RemoteOpen = true;
+            try { config.Save(); } catch { }
+        }
+
+        private void HideRemote()
+        {
+            if (remoteForm == null || remoteForm.IsDisposed) return;
+            SaveRemoteState();
+            remoteForm.Hide();
+            config.RemoteOpen = false;
+            try { config.Save(); } catch { }
+        }
+
+        private void RemoteFormClosed(object sender, EventArgs e)
+        {
+            RemoteForm form = sender as RemoteForm;
+            if (form != null)
+            {
+                config.RemoteX = form.Location.X;
+                config.RemoteY = form.Location.Y;
+            }
+            config.RemoteOpen = false;
+            try { config.Save(); } catch { }
+            if (remoteForm == form) remoteForm = null;
+            SyncRemoteCheck();
+        }
+
+        private void SaveRemoteState()
+        {
+            if (remoteForm == null || remoteForm.IsDisposed) return;
+            config.RemoteX = remoteForm.Location.X;
+            config.RemoteY = remoteForm.Location.Y;
+            config.RemoteOpen = remoteForm.Visible;
+        }
+
+        private Point RemoteLocation(Form form)
+        {
+            if (config.RemoteX >= 0 && config.RemoteY >= 0)
+                return new Point(config.RemoteX, config.RemoteY);
+            Rectangle wa = Screen.PrimaryScreen.WorkingArea;
+            return new Point(
+                Math.Max(wa.Left, wa.Right - form.Width - 12),
+                Math.Max(wa.Top, wa.Bottom - form.Height - 12));
+        }
+
+        private void ClampRemoteToScreen()
+        {
+            if (remoteForm == null || remoteForm.IsDisposed) return;
+            Rectangle wa = Screen.PrimaryScreen.WorkingArea;
+            int x = Math.Max(wa.Left, Math.Min(remoteForm.Location.X, wa.Right - remoteForm.Width));
+            int y = Math.Max(wa.Top, Math.Min(remoteForm.Location.Y, wa.Bottom - remoteForm.Height));
+            remoteForm.Location = new Point(x, y);
+        }
+
+        private void SyncRemoteCheck()
+        {
+            if (menu == null || menu.IsDisposed) return;
+            bool visible = remoteForm != null && !remoteForm.IsDisposed && remoteForm.Visible;
+            foreach (ToolStripItem item in menu.Items)
+            {
+                ToolStripMenuItem menuItem = item as ToolStripMenuItem;
+                if (menuItem != null && menuItem.Text == "Despegar mando flotante")
+                    menuItem.Checked = visible;
+            }
         }
 
         private void TrayMouseClick(object sender, MouseEventArgs e)
@@ -343,21 +448,31 @@ namespace LgHdmiTray
                 }
             }
 
+            string status;
             if (result.Ok)
             {
                 if (action >= 0 && action <= 3)
-                    Log.Write("HDMI " + (action + 1) + " activado.");
+                    status = "HDMI " + (action + 1) + " activado.";
                 else if (action == AppConfig.ActionPowerOff)
-                    Log.Write("TV apagada.");
+                    status = "TV apagada.";
                 else
-                    Log.Write(name + ": OK.");
+                    status = name + ": OK.";
+                Log.Write(status);
+                UpdateRemoteStatus(status);
                 return;
             }
 
             string error = string.IsNullOrWhiteSpace(result.Error)
                 ? "No se pudo ejecutar la accion." : result.Error;
             Log.Write("Error " + name + ": " + error);
+            UpdateRemoteStatus("Error " + name + ": " + error);
             ShowBalloon("No se pudo ejecutar " + name, error, ToolTipIcon.Error, 6000);
+        }
+
+        private void UpdateRemoteStatus(string text)
+        {
+            if (remoteForm == null || remoteForm.IsDisposed) return;
+            try { remoteForm.SetStatus(text); } catch { }
         }
 
         private void ShowTvSettings()
@@ -476,10 +591,26 @@ namespace LgHdmiTray
             if (disposed) return;
             disposed = true;
             Log.Write("Salida.");
+            CloseRemote();
             try { hotkeys.Dispose(); } catch { }
             try { tray.Visible = false; tray.Dispose(); } catch { }
             try { window.Dispose(); } catch { }
             ExitThread();
+        }
+
+        private void CloseRemote()
+        {
+            if (remoteForm == null) return;
+            try
+            {
+                SaveRemoteState();
+                try { config.Save(); } catch { }
+                remoteForm.FormClosed -= RemoteFormClosed;
+                remoteForm.Close();
+                remoteForm.Dispose();
+            }
+            catch { }
+            remoteForm = null;
         }
 
         protected override void Dispose(bool disposing)
@@ -487,6 +618,7 @@ namespace LgHdmiTray
             if (disposing && !disposed)
             {
                 disposed = true;
+                CloseRemote();
                 if (firstRunTimer != null)
                 {
                     firstRunTimer.Stop();

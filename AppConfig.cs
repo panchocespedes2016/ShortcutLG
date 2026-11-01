@@ -12,6 +12,9 @@ namespace LgHdmiTray
         public string ClientKey;
         public Hotkey[] Hotkeys;
         public bool KeepMenuOpen;
+        public int RemoteX;
+        public int RemoteY;
+        public bool RemoteOpen;
 
         public AppConfig()
         {
@@ -19,6 +22,9 @@ namespace LgHdmiTray
             ClientKey = "";
             Hotkeys = DefaultHotkeys();
             KeepMenuOpen = false;
+            RemoteX = -1;
+            RemoteY = -1;
+            RemoteOpen = false;
         }
 
         // Acciones en el orden de los atajos: 0-3 HDMI, 4 volumen +,
@@ -108,6 +114,14 @@ namespace LgHdmiTray
                 if (values.TryGetValue("KeepMenuOpen", out value))
                     cfg.KeepMenuOpen = value == "1" ||
                         string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
+                int number;
+                if (values.TryGetValue("RemoteX", out value) && int.TryParse(value, out number))
+                    cfg.RemoteX = number;
+                if (values.TryGetValue("RemoteY", out value) && int.TryParse(value, out number))
+                    cfg.RemoteY = number;
+                if (values.TryGetValue("RemoteOpen", out value))
+                    cfg.RemoteOpen = value == "1" ||
+                        string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
                 for (int i = 0; i < ActionCount; i++)
                 {
                     Hotkey hk;
@@ -133,6 +147,9 @@ namespace LgHdmiTray
                 lines.Add("TvIp=" + (TvIp ?? ""));
                 lines.Add("ClientKey=" + (ClientKey ?? ""));
                 lines.Add("KeepMenuOpen=" + (KeepMenuOpen ? "1" : "0"));
+                lines.Add("RemoteX=" + RemoteX);
+                lines.Add("RemoteY=" + RemoteY);
+                lines.Add("RemoteOpen=" + (RemoteOpen ? "1" : "0"));
                 for (int i = 0; i < ActionCount; i++)
                     lines.Add("Hotkey" + (i + 1) + "=" + (Hotkeys[i] != null ? Hotkeys[i].ToString() : ""));
                 File.WriteAllLines(ConfigPath, lines.ToArray(), new UTF8Encoding(false));
