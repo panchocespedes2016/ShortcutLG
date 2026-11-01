@@ -313,9 +313,38 @@ namespace LgHdmiTray
                     throw new Exception(string.IsNullOrWhiteSpace(messageText)
                         ? "La TV devolvio un error." : messageText);
                 }
-                if (GetString(message, "id") == id) return message;
+                if (GetString(message, "id") == id)
+                {
+                    EnsureResponseOk(message);
+                    return message;
+                }
             }
             throw new TimeoutException("La TV no respondio a la peticion.");
+        }
+
+        // La TV puede responder con returnValue=false sin enviar un mensaje de
+        // tipo "error". Sin esta comprobacion la orden se daba por buena: el
+        // HDMI no cambiaba (y no se probaba el lanzador alternativo) y el
+        // volumen o el mando fallaban en silencio.
+        private static void EnsureResponseOk(Dictionary<string, object> response)
+        {
+            if (response == null) return;
+            object payloadObject;
+            if (!response.TryGetValue("payload", out payloadObject)) return;
+            Dictionary<string, object> payload = payloadObject as Dictionary<string, object>;
+            if (payload == null) return;
+
+            object value;
+            if (!payload.TryGetValue("returnValue", out value) || value == null) return;
+            bool ok;
+            if (value is bool) ok = (bool)value;
+            else if (!bool.TryParse(Convert.ToString(value), out ok)) ok = false;
+            if (ok) return;
+
+            string error = GetString(payload, "errorText");
+            if (string.IsNullOrWhiteSpace(error)) error = GetString(payload, "error");
+            throw new Exception(string.IsNullOrWhiteSpace(error)
+                ? "La TV rechazo la peticion." : error);
         }
 
         public static LgResult Pair(string ip, int timeoutSeconds)
@@ -583,10 +612,15 @@ namespace LgHdmiTray
 
         private static string FriendlyError(Exception ex, string ip)
         {
+            string message = ex == null ? "" : (ex.Message ?? "");
+            if (message.IndexOf("401", StringComparison.Ordinal) >= 0 ||
+                message.IndexOf("insufficient permissions", StringComparison.OrdinalIgnoreCase) >= 0)
+                return "La TV rechazo la autorizacion (401). Abre Configurar TV y empareja de nuevo.";
+
             if (ex is OperationCanceledException || ex is WebSocketException || ex is SocketException)
                 return "No se pudo conectar con la TV (" + ip + "). Comprueba que esta encendida, " +
                        "en la misma red y que la IP es correcta.";
-            return "Error de conexion con la TV: " + ex.Message;
+            return "Error de la TV: " + message;
         }
     }
 }

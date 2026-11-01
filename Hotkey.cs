@@ -85,6 +85,8 @@ namespace LgHdmiTray
             if (key == Keys.Return) return "Enter";
             if (key == Keys.Escape) return "Esc";
             if (key == Keys.Back) return "Backspace";
+            if (key == Keys.PageUp || key == Keys.Prior) return "PageUp";
+            if (key == Keys.PageDown || key == Keys.Next) return "PageDown";
             return key.ToString();
         }
 
