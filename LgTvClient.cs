@@ -175,13 +175,18 @@ namespace LgHdmiTray
 
         private static OrderedDictionary BuildManifest()
         {
-            // Manifiesto EXACTO al de pi3 (/home/eph/lgtv.py), el que lleva
+            // Manifiesto basado en el de pi3 (/home/eph/lgtv.py), el que lleva
             // funcionando desde septiembre de 2026 en esta TV (webOS 3.4.3):
             // sin bloque "signed" ni "signatures", con signedAppId, vendor y
             // los nombres localizados de pi3, y su lista de permisos en el
-            // mismo orden. La clave guardada queda ligada al manifiesto con
-            // el que se emparejo: tras este cambio hay que emparejar de nuevo
-            // para que la TV emita una clave nueva con este alcance.
+            // mismo orden. Desviacion deliberada 2026-11-01: se anaden
+            // CONTROL_INPUT_TEXT y CONTROL_MOUSE_AND_KEYBOARD (no estan en
+            // lgtv.py porque ese script nunca usa el socket de entrada);
+            // sin ellos la TV niega getPointerInputSocket con 401 y no
+            // funcionan OK/flechas/Exit ni el boton HOME. La clave guardada
+            // queda ligada al manifiesto con el que se emparejo: tras este
+            // cambio hay que emparejar de nuevo para que la TV emita una
+            // clave nueva con este alcance.
             OrderedDictionary vendor = new OrderedDictionary();
             vendor["vendorId"] = "com.lge";
 
@@ -206,7 +211,8 @@ namespace LgHdmiTray
                 "LAUNCH", "LAUNCH_WEBAPP", "APP_TO_APP", "CLOSE",
                 "CONTROL_AUDIO", "CONTROL_DISPLAY", "CONTROL_INPUT_JOYSTICK",
                 "CONTROL_INPUT_MEDIA_RECORDING", "CONTROL_INPUT_MEDIA_PLAYBACK",
-                "CONTROL_INPUT_TV", "CONTROL_POWER", "READ_APP_STATUS",
+                "CONTROL_INPUT_TV", "CONTROL_INPUT_TEXT",
+                "CONTROL_MOUSE_AND_KEYBOARD", "CONTROL_POWER", "READ_APP_STATUS",
                 "READ_CURRENT_CHANNEL", "READ_INPUT_DEVICE_LIST", "READ_NETWORK_STATE",
                 "READ_RUNNING_APPS", "READ_TV_CHANNEL_LIST",
                 "WRITE_NOTIFICATION_TOAST", "READ_POWER_STATE", "READ_COUNTRY_INFO"

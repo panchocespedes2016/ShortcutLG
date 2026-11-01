@@ -67,3 +67,7 @@ MIT. Ver `LICENSE`.
 ## Versión 1.1.2
 
 Opción «No ocultar el menú» en el menú del icono: con la marca puesta, el menú se queda abierto al pulsar una acción, para subir el volumen varias veces sin abrirlo de nuevo. Se cierra con Escape o con un clic fuera, y la opción se guarda en la configuración.
+
+## Versión 1.1.3 (experimento)
+
+El manifiesto añade `CONTROL_INPUT_TEXT` y `CONTROL_MOUSE_AND_KEYBOARD` (no están en `lgtv.py`) porque sin ellos la TV niega el socket de entrada con 401 y no funcionan OK/flechas/Exit ni el botón HOME. Exige re-emparejar para que la TV emita una clave con el nuevo alcance.
